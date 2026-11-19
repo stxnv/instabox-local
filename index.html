@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>InstaBox Local</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000; --bg-2: #0a0a0a; --card: #111111; --card-2: #161616;
+    --border: #262626; --text: #ffffff; --muted: #8a8a8a;
+    --good: #7ee787; --warn: #f2cc60; --danger: #ff7b72; --accent: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'JetBrains Mono', monospace; background:var(--bg); color:var(--text); min-height:100vh; font-size:13px; }
+  .app { display:grid; grid-template-columns: 220px 1fr; min-height:100vh; }
+  .sidebar { border-right:1px solid var(--border); padding:18px 14px; background:var(--bg-2); }
+  .brand { font-weight:700; font-size:1rem; margin-bottom:22px; letter-spacing:.02em; }
+  .brand span { color:var(--muted); font-weight:400; }
+  .menu-section { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.12em; margin:16px 0 6px 8px; }
+  .menu { display:flex; flex-direction:column; gap:2px; }
+  .menu-item { padding:8px 10px; border-radius:6px; cursor:pointer; color:var(--muted); font-size:12px; border:1px solid transparent; }
+  .menu-item:hover { background:var(--card); color:var(--text); }
+  .menu-item.active { background:var(--card); color:var(--text); border-color:var(--border); }
+  .main { padding:24px 28px; overflow:auto; }
+  .page { display:none; }
+  .page.active { display:block; }
+  .page h1 { font-size:1.4rem; margin:0 0 4px; font-weight:600; }
+  .page .sub { color:var(--muted); margin-bottom:20px; font-size:12px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns: repeat(3,1fr); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+  .card h3 { margin:0 0 2px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .card .sub { color:var(--muted); font-size:11px; margin-bottom:12px; }
+  .row { display:flex; justify-content:space-between; padding:4px 0; font-size:12px; border-bottom:1px solid #1a1a1a; }
+  .row:last-child { border-bottom:none; }
+  .row .k { color:var(--muted); }
+  .row .v { font-weight:500; text-align:right; max-width:60%; word-break:break-all; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:5px; }
+  .input, select, textarea {
+    width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border);
+    padding:8px 10px; border-radius:6px; font-family:inherit; font-size:12px; outline:none;
+  }
+  .input:focus, select:focus, textarea:focus { border-color:#555; }
+  .btn { border:1px solid var(--border); background:var(--card); color:var(--text); padding:7px 12px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:12px; transition:all .12s; }
+  .btn:hover { border-color:#555; background:var(--card-2); }
+  .btn.primary { background:var(--text); color:var(--bg); border-color:var(--text); font-weight:600; }
+  .btn.primary:hover { opacity:.85; }
+  .btn.danger { border-color:var(--danger); color:var(--danger); }
+  .btn.danger:hover { background:rgba(255,123,114,.1); }
+  .btn.sm { padding:4px 8px; font-size:11px; }
+  .status { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+  .status.running { background:rgba(126,231,135,.12); color:var(--good); border:1px solid rgba(126,231,135,.3); }
+  .status.stopped { background:rgba(138,138,138,.12); color:var(--muted); border:1px solid var(--border); }
+  .vm-list { display:flex; flex-direction:column; gap:10px; }
+  .vm { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .vm-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .vm-name { font-weight:600; font-size:13px; }
+  .vm-meta { display:grid; grid-template-columns: repeat(4,1fr); gap:8px; margin-bottom:10px; }
+  .vm-meta .m { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:6px 8px; }
+  .vm-meta .m .k { color:var(--muted); font-size:9px; text-transform:uppercase; }
+  .vm-meta .m .v { font-size:12px; font-weight:500; margin-top:2px; }
+  .vm-actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .logbox { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; font-size:11px; height:320px; overflow:auto; white-space:pre-wrap; word-break:break-all; }
+  .console { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; font-size:11px; height:200px; overflow:auto; white-space:pre-wrap; color:var(--muted); }
+  footer { text-align:center; color:var(--muted); font-size:10px; padding:16px; border-top:1px solid var(--border); margin-top:24px; }
+  .empty { color:var(--muted); font-size:12px; padding:20px; text-align:center; border:1px dashed var(--border); border-radius:8px; }
+  @media (max-width:900px){ .app{grid-template-columns:1fr;} .sidebar{border-right:none;border-bottom:1px solid var(--border);} .grid,.grid-3{grid-template-columns:1fr;} .vm-meta{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">InstaBox <span>Local</span></div>
+    <div class="menu-section">Menu</div>
+    <div class="menu">
+      <div class="menu-item active" data-page="dashboard">Dashboard</div>
+      <div class="menu-item" data-page="machines">Machines</div>
+      <div class="menu-item" data-page="create">Create VM</div>
+      <div class="menu-item" data-page="logs">Agent Logs</div>
+      <div class="menu-item" data-page="settings">Settings</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page active" id="page-dashboard">
+      <h1>Dashboard</h1>
+      <div class="sub">Local VM control panel.</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Host</h3>
+          <div class="sub">Detected machine specs.</div>
+          <div id="host-box">Loading...</div>
+        </div>
+        <div class="card">
+          <h3>Server</h3>
+          <div class="sub">HTTP endpoint for remote servers.</div>
+          <div id="server-box">Loading...</div>
+        </div>
+        <div class="card">
+          <h3>Machines</h3>
+          <div class="sub">VM summary.</div>
+          <div id="vm-summary">Loading...</div>
+        </div>
+        <div class="card">
+          <h3>Quick actions</h3>
+          <div class="sub">Shortcuts.</div>
+          <button class="btn primary" onclick="goPage('create')">Create VM</button>
+          <button class="btn" style="margin-left:6px;" onclick="goPage('machines')">View machines</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-machines">
+      <h1>Machines</h1>
+      <div class="sub">Running and stopped VMs.</div>
+      <div id="vm-list" class="vm-list"></div>
+    </div>
+
+    <div class="page" id="page-create">
+      <h1>Create VM</h1>
+      <div class="sub">Capped at 4 vCPU / 4096 MB for safe local testing.</div>
+      <div class="card" style="max-width:560px;">
+        <div class="field"><label>Name</label><input class="input" id="c-name" value="vm1" /></div>
+        <div class="grid" style="gap:12px;">
+          <div class="field"><label>RAM (MB)</label><input class="input" id="c-ram" type="number" value="1024" min="512" max="4096" /></div>
+          <div class="field"><label>vCPU</label><input class="input" id="c-cpu" type="number" value="2" min="1" max="4" /></div>
+        </div>
+        <div class="field"><label>Disk (GB)</label><input class="input" id="c-disk" type="number" value="8" min="4" max="40" /></div>
+        <div class="field"><label>ISO / image path (optional)</label><input class="input" id="c-iso" placeholder="C:\path\to\image.iso or .qcow2" /></div>
+        <div class="field"><label>Boot mode</label>
+          <select id="c-boot">
+            <option value="disk">Disk only (cloud image, instant boot)</option>
+            <option value="iso">ISO install (slower)</option>
+          </select>
+        </div>
+        <button class="btn primary" onclick="createVm()">Create</button>
+        <span id="create-status" style="margin-left:10px; color:var(--muted); font-size:11px;"></span>
+      </div>
+    </div>
+
+    <div class="page" id="page-logs">
+      <h1>Agent Logs</h1>
+      <div class="sub">History of agent commands and errors.</div>
+      <div class="log-toolbar" style="display:flex; gap:8px; margin-bottom:10px;">
+        <button class="btn" onclick="clearLogs()">Clear</button>
+        <button class="btn" onclick="addSampleLog()">Add sample</button>
+      </div>
+      <div class="logbox" id="logbox"></div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <h1>Settings</h1>
+      <div class="sub">Prototype settings.</div>
+      <div class="card" style="max-width:560px;">
+        <h3>Runtime</h3>
+        <div class="sub">QEMU and accelerator in use.</div>
+        <div id="runtime-box">Loading...</div>
+        <button class="btn" style="margin-top:10px;" onclick="reloadSpecs()">Reload</button>
+      </div>
+    </div>
+
+    <footer>InstaBox Local - prototype build. Not affiliated with instabox.sh.</footer>
+  </main>
+</div>
+
+<script>
+  let SPECS = { cpuName:'Ryzen 5 5600', maxVcpu:12, maxRamGB:40, gpuName:'NVIDIA GeForce GTX 1080', gpuAvailable:true };
+  let VMS = [];
+
+  async function api(path, opts) {
+    try {
+      const r = await fetch(path, opts);
+      return await r.json();
+    } catch (e) { return null; }
+  }
+
+  function goPage(name) {
+    document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+    const mi = document.querySelector(`.menu-item[data-page="${name}"]`);
+    if (mi) mi.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if (name === 'machines') loadMachines();
+    if (name === 'dashboard') refreshDashboard();
+  }
+  document.querySelectorAll('.menu-item').forEach(m => m.addEventListener('click', ()=>goPage(m.dataset.page)));
+
+  async function loadSpecs() {
+    const s = await api('/api/specs');
+    if (s) SPECS = s;
+    const h = await api('/api/health');
+    renderHost();
+    renderServer(h);
+    renderRuntime(h);
+  }
+
+  function renderHost() {
+    const el = document.getElementById('host-box');
+    el.innerHTML = `
+      <div class="row"><span class="k">CPU</span><span class="v">${SPECS.cpuName}</span></div>
+      <div class="row"><span class="k">Max vCPU</span><span class="v">${SPECS.maxVcpu}</span></div>
+      <div class="row"><span class="k">Max RAM</span><span class="v">${SPECS.maxRamGB} GB</span></div>
+      <div class="row"><span class="k">GPU</span><span class="v">${SPECS.gpuAvailable ? SPECS.gpuName : 'None'}</span></div>
+    `;
+  }
+
+  function renderServer(h) {
+    const el = document.getElementById('server-box');
+    const base = window.location.origin;
+    el.innerHTML = `
+      <div class="row"><span class="k">Base URL</span><span class="v">${base}</span></div>
+      <div class="row"><span class="k">Health</span><span class="v">${base}/api/health</span></div>
+      <div class="row"><span class="k">Specs</span><span class="v">${base}/api/specs</span></div>
+      <div class="row"><span class="k">Machines</span><span class="v">${base}/api/vms</span></div>
+    `;
+  }
+
+  function renderRuntime(h) {
+    const el = document.getElementById('runtime-box');
+    if (!h) { el.textContent = 'unavailable'; return; }
+    el.innerHTML = `
+      <div class="row"><span class="k">QEMU</span><span class="v">${h.qemu}</span></div>
+      <div class="row"><span class="k">Accel</span><span class="v">${h.accel}</span></div>
+      <div class="row"><span class="k">Host</span><span class="v">${h.host}</span></div>
+      <div class="row"><span class="k">Port</span><span class="v">${h.port}</span></div>
+    `;
+  }
+
+  async function refreshDashboard() {
+    await loadSpecs();
+    const vms = await api('/api/vms');
+    VMS = vms || [];
+    const el = document.getElementById('vm-summary');
+    const running = VMS.filter(v=>v.status==='running').length;
+    el.innerHTML = `
+      <div class="row"><span class="k">Total</span><span class="v">${VMS.length}</span></div>
+      <div class="row"><span class="k">Running</span><span class="v">${running}</span></div>
+      <div class="row"><span class="k">Stopped</span><span class="v">${VMS.length-running}</span></div>
+    `;
+  }
+
+  async function loadMachines() {
+    const vms = await api('/api/vms');
+    VMS = vms || [];
+    const el = document.getElementById('vm-list');
+    if (!VMS.length) { el.innerHTML = '<div class="empty">No machines yet. Create one to get started.</div>'; return; }
+    el.innerHTML = VMS.map(v => `
+      <div class="vm" id="vm-${v.id}">
+        <div class="vm-head">
+          <div class="vm-name">${v.name}</div>
+          <span class="status ${v.status}">${v.status}</span>
+        </div>
+        <div class="vm-meta">
+          <div class="m"><div class="k">RAM</div><div class="v">${v.ram} MB</div></div>
+          <div class="m"><div class="k">vCPU</div><div class="v">${v.cpu}</div></div>
+          <div class="m"><div class="k">Disk</div><div class="v">${v.diskGB} GB</div></div>
+          <div class="m"><div class="k">SSH port</div><div class="v">${v.sshPort}</div></div>
+        </div>
+        <div class="vm-actions">
+          ${v.status!=='running' ? `<button class="btn primary sm" onclick="startVm('${v.id}')">Start</button>` : `<button class="btn sm" onclick="stopVm('${v.id}')">Stop</button>`}
+          <button class="btn sm" onclick="viewConsole('${v.id}')">Console</button>
+          <button class="btn danger sm" onclick="deleteVm('${v.id}')">Delete</button>
+        </div>
+        <div class="console" id="console-${v.id}" style="display:none; margin-top:10px;"></div>
+      </div>
+    `).join('');
+  }
+
+  async function createVm() {
+    const st = document.getElementById('create-status');
+    st.textContent = 'creating...';
+    const boot = document.getElementById('c-boot').value;
+    const iso = document.getElementById('c-iso').value.trim();
+    const body = {
+      name: document.getElementById('c-name').value,
+      ram: document.getElementById('c-ram').value,
+      cpu: document.getElementById('c-cpu').value,
+      diskGB: document.getElementById('c-disk').value,
+      iso: (boot === 'iso' && iso) ? iso : null,
+    };
+    const r = await api('/api/vms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (r && r.id) {
+      st.textContent = 'created: ' + r.id;
+      logAgent('create', 'ok', `VM ${r.id} ${r.ram}MB/${r.cpu}vCPU`);
+      goPage('machines');
+    } else {
+      st.textContent = 'failed';
+      logAgent('create', 'err', (r && r.error) || 'unknown');
+    }
+  }
+
+  async function startVm(id) {
+    const r = await api('/api/vms/'+id+'/start', { method:'POST' });
+    if (r && r.id) { logAgent('start', 'ok', id); loadMachines(); }
+    else { logAgent('start', 'err', (r&&r.error)||'failed'); }
+  }
+  async function stopVm(id) {
+    const r = await api('/api/vms/'+id+'/stop', { method:'POST' });
+    if (r && r.id) { logAgent('stop', 'ok', id); loadMachines(); }
+    else { logAgent('stop', 'err', (r&&r.error)||'failed'); }
+  }
+  async function deleteVm(id) {
+    if (!confirm('Delete machine '+id+'?')) return;
+    const r = await fetch('/api/vms/'+id, { method:'DELETE' });
+    const j = await r.json();
+    if (j && j.ok) { logAgent('delete', 'ok', id); loadMachines(); }
+    else { logAgent('delete', 'err', (j&&j.error)||'failed'); }
+  }
+  async function viewConsole(id) {
+    const el = document.getElementById('console-'+id);
+    if (el.style.display === 'none') {
+      el.style.display = 'block';
+      const r = await api('/api/vms/'+id+'/console');
+      el.textContent = (r && r.lines) ? r.lines.join('\n') : '(no output)';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  // Agent logs
+  const logs = [];
+  function renderLogs() {
+    const box = document.getElementById('logbox');
+    box.innerHTML = logs.map(l =>
+      `<div>[${l.ts}] ${l.cmd} ${l.status==='ok'?'OK':'ERR'}${l.msg?' - '+l.msg:''}</div>`
+    ).join('') || '<div style="color:var(--muted)">No entries yet.</div>';
+    box.scrollTop = box.scrollHeight;
+  }
+  function logAgent(cmd, status, msg) {
+    logs.push({ ts: new Date().toLocaleTimeString(), cmd, status, msg });
+    renderLogs();
+  }
+  function clearLogs() { logs.length=0; renderLogs(); }
+  function addSampleLog() {
+    logAgent('systemctl status', 'ok', 'service running');
+    logAgent('apt update', 'err', 'network unreachable');
+  }
+
+  function reloadSpecs() { location.reload(); }
+
+  // init
+  logAgent('boot', 'ok', 'InstaBox Local initialized');
+  loadSpecs().then(refreshDashboard);
+</script>
+</body>
+</html>

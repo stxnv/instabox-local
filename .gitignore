@@ -1,0 +1,10 @@
+node_modules/
+vms/
+images/
+port.txt
+specs.js
+*.out
+*.err
+vms.json
+.DS_Store
+Thumbs.db
